@@ -3,7 +3,7 @@ package com.example.ui.viewmodel
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.ExamRepository
+import com.example.data.ExamDataSource
 import com.example.data.OmrAiService
 import com.example.model.AiConfidence
 import com.example.model.Exam
@@ -44,7 +44,7 @@ data class ScanUiState(
 )
 
 class ScanViewModel(
-    private val repository: ExamRepository,
+    private val repository: ExamDataSource,
     private val aiService: OmrAiService,
     private val defaultUserName: String
 ) : ViewModel() {

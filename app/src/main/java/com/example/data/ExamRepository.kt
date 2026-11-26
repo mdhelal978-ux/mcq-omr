@@ -33,7 +33,7 @@ import kotlin.random.Random
 class ExamRepository(
     private val db: FirebaseFirestore,
     private val auth: FirebaseAuth = Firebase.auth
-) {
+) : ExamDataSource {
     constructor(context: Context) : this(
         FirebaseFirestore.getInstance(
             context.applicationContext.getString(R.string.firestore_database_id)
@@ -44,7 +44,7 @@ class ExamRepository(
         auth.currentUser?.uid
             ?: throw IllegalStateException("User must be signed in with Google before accessing Firestore.")
 
-    fun observeTeacherExams(teacherId: String): Flow<List<Exam>> = flow {
+    override fun observeTeacherExams(teacherId: String): Flow<List<Exam>> = flow {
         require(teacherId.isNotBlank()) { "Teacher ID must not be blank" }
         val path = "exams"
         emitAll(
@@ -71,7 +71,7 @@ class ExamRepository(
         )
     }
 
-    fun observeMySubmissions(userId: String): Flow<List<Submission>> = flow {
+    override fun observeMySubmissions(userId: String): Flow<List<Submission>> = flow {
         require(userId.isNotBlank()) { "User ID must not be blank" }
         val path = "submissions"
         emitAll(
@@ -98,7 +98,7 @@ class ExamRepository(
         )
     }
 
-    fun observeExamSubmissions(teacherId: String, examId: String): Flow<List<Submission>> = flow {
+    override fun observeExamSubmissions(teacherId: String, examId: String): Flow<List<Submission>> = flow {
         require(teacherId.isNotBlank() && examId.isNotBlank()) { "Teacher ID and Exam ID required" }
         val path = "submissions"
         emitAll(
@@ -143,7 +143,7 @@ class ExamRepository(
         }
     }
 
-    suspend fun lookupExamByCode(rawCode: String): Result<Exam> {
+    override suspend fun lookupExamByCode(rawCode: String): Result<Exam> {
         val code = rawCode.trim().uppercase().replace(Regex("[^A-Z0-9\\-]"), "")
         if (code.length < 4 || code.length > 12) {
             return Result.failure(IllegalArgumentException("Invalid Exam Code format."))
@@ -175,7 +175,7 @@ class ExamRepository(
         }
     }
 
-    suspend fun createExam(
+    override suspend fun createExam(
         teacherName: String,
         title: String,
         subject: String,
@@ -263,7 +263,7 @@ class ExamRepository(
         }
     }
 
-    suspend fun updateExam(
+    override suspend fun updateExam(
         examId: String,
         examCode: String,
         title: String,
@@ -325,7 +325,7 @@ class ExamRepository(
         }
     }
 
-    suspend fun updateExamStatus(
+    override suspend fun updateExamStatus(
         examId: String,
         examCode: String,
         newStatus: ExamStatus
@@ -359,7 +359,7 @@ class ExamRepository(
         }
     }
 
-    suspend fun deleteExam(examId: String, examCode: String): Result<Unit> {
+    override suspend fun deleteExam(examId: String, examCode: String): Result<Unit> {
         val path = "exams/$examId"
         return try {
             requireUserId()
@@ -379,7 +379,7 @@ class ExamRepository(
         }
     }
 
-    suspend fun saveSubmission(
+    override suspend fun saveSubmission(
         exam: Exam,
         scannedByRole: ScannedByRole,
         studentName: String,
@@ -471,7 +471,7 @@ class ExamRepository(
         }
     }
 
-    suspend fun deleteSubmission(submissionId: String): Result<Unit> {
+    override suspend fun deleteSubmission(submissionId: String): Result<Unit> {
         val path = "submissions/$submissionId"
         return try {
             requireUserId()

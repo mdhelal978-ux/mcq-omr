@@ -32,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,7 +65,8 @@ fun AuthScreen(
     language: AppLanguage,
     strings: AppStrings,
     onToggleLanguage: () -> Unit,
-    onAuthSuccess: () -> Unit
+    onAuthSuccess: () -> Unit,
+    onContinueWithoutSignIn: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -238,6 +240,21 @@ fun AuthScreen(
                                     style = MaterialTheme.typography.labelLarge
                                 )
                             }
+                        }
+
+                        OutlinedButton(
+                            onClick = onContinueWithoutSignIn,
+                            enabled = !isLoading,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .testTag("continue_without_signin_button")
+                        ) {
+                            Text(
+                                text = strings.continueWithoutSignIn,
+                                style = MaterialTheme.typography.labelLarge
+                            )
                         }
                     }
                 }

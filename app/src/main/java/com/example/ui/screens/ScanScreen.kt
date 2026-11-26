@@ -90,6 +90,7 @@ import com.example.ui.viewmodel.UiState
 fun ScanScreen(
     scanViewModel: ScanViewModel,
     teacherExamsState: UiState<List<Exam>>,
+    isGuestMode: Boolean,
     strings: AppStrings,
     onDoneToHome: () -> Unit,
     modifier: Modifier = Modifier
@@ -201,6 +202,7 @@ fun ScanScreen(
                         SelectExamStepContent(
                             uiState = uiState,
                             teacherExams = (teacherExamsState as? UiState.Success)?.data.orEmpty(),
+                            isGuestMode = isGuestMode,
                             strings = strings,
                             onRoleChange = scanViewModel::setScanningRole,
                             onCodeChange = scanViewModel::updateExamCodeInput,
@@ -511,6 +513,7 @@ private fun ScanStepHeader(
 private fun SelectExamStepContent(
     uiState: ScanUiState,
     teacherExams: List<Exam>,
+    isGuestMode: Boolean,
     strings: AppStrings,
     onRoleChange: (ScannedByRole) -> Unit,
     onCodeChange: (String) -> Unit,
@@ -596,6 +599,13 @@ private fun SelectExamStepContent(
                             Text(strings.findExamButton)
                         }
                     }
+                }
+                if (isGuestMode) {
+                    Text(
+                        text = strings.guestCodeLookupNotice,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

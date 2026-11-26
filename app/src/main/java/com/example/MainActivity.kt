@@ -49,7 +49,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.data.ExamDataSource
 import com.example.data.ExamRepository
+import com.example.data.LocalExamRepository
 import com.example.data.LocalePreferences
 import com.example.data.OmrAiService
 import com.example.data.attemptAutoSignIn
@@ -70,7 +72,6 @@ import com.example.ui.theme.ShikkhaScanTheme
 import com.example.ui.viewmodel.DashboardViewModel
 import com.example.ui.viewmodel.ScanViewModel
 import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -123,13 +124,14 @@ private fun AppRoot(
     val credentialManager = remember(context) { CredentialManager.create(context) }
     val auth = Firebase.auth
     val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
+    var continueAsGuest by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        if (auth.currentUser == null) {
+        if (auth.currentUser == null && !continueAsGuest) {
             attemptAutoSignIn(
                 context = context,
                 credentialManager = credentialManager,
-                onAuthSuccess = {},
+                onAuthSuccess = { continueAsGuest = false },
                 onUnauthenticated = {},
                 scope = scope
             )
@@ -137,46 +139,81 @@ private fun AppRoot(
     }
 
     val user = currentUser
-    if (user == null) {
-        AuthScreen(
-            language = language,
-            strings = strings,
-            onToggleLanguage = onToggleLanguage,
-            onAuthSuccess = {}
-        )
-    } else {
-        key(user.uid) {
-            AuthenticatedShell(
-                user = user,
+    when {
+        user != null -> {
+            val displayName = user.displayName.orEmpty().ifBlank { user.email.orEmpty() }
+            val cloudDataSource = remember(user.uid, context) {
+                val db = FirebaseFirestore.getInstance(context.getString(R.string.firestore_database_id))
+                ExamRepository(db)
+            }
+            key(user.uid) {
+                AppShell(
+                    uid = user.uid,
+                    displayName = displayName,
+                    isGuestMode = false,
+                    dataSource = cloudDataSource,
+                    language = language,
+                    strings = strings,
+                    onToggleLanguage = onToggleLanguage,
+                    onSignOut = {
+                        continueAsGuest = false
+                        signOut(credentialManager = credentialManager, scope = scope)
+                    },
+                    onSignInRequest = {}
+                )
+            }
+        }
+
+        continueAsGuest -> {
+            val localDataSource = remember(context) {
+                LocalExamRepository(context.applicationContext)
+            }
+            key(LocalExamRepository.GUEST_UID) {
+                AppShell(
+                    uid = LocalExamRepository.GUEST_UID,
+                    displayName = strings.guestModeBadge,
+                    isGuestMode = true,
+                    dataSource = localDataSource,
+                    language = language,
+                    strings = strings,
+                    onToggleLanguage = onToggleLanguage,
+                    onSignOut = {},
+                    onSignInRequest = { continueAsGuest = false }
+                )
+            }
+        }
+
+        else -> {
+            AuthScreen(
                 language = language,
                 strings = strings,
                 onToggleLanguage = onToggleLanguage,
-                onSignOut = {
-                    signOut(credentialManager = credentialManager, scope = scope)
-                }
+                onAuthSuccess = { continueAsGuest = false },
+                onContinueWithoutSignIn = { continueAsGuest = true }
             )
         }
     }
 }
 
 @Composable
-private fun AuthenticatedShell(
-    user: FirebaseUser,
+private fun AppShell(
+    uid: String,
+    displayName: String,
+    isGuestMode: Boolean,
+    dataSource: ExamDataSource,
     language: AppLanguage,
     strings: AppStrings,
     onToggleLanguage: () -> Unit,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onSignInRequest: () -> Unit
 ) {
-    val uid = user.uid
-    val displayName = user.displayName.orEmpty().ifBlank { user.email.orEmpty() }
+    val scanDefaultName = if (isGuestMode) "" else displayName
 
     val dashboardViewModel: DashboardViewModel = viewModel(
         key = "dash_$uid",
         factory = viewModelFactory {
             initializer {
-                val app = checkNotNull(this[APPLICATION_KEY])
-                val db = FirebaseFirestore.getInstance(app.getString(R.string.firestore_database_id))
-                DashboardViewModel(ExamRepository(db), uid)
+                DashboardViewModel(dataSource, uid)
             }
         }
     )
@@ -185,9 +222,7 @@ private fun AuthenticatedShell(
         key = "scan_$uid",
         factory = viewModelFactory {
             initializer {
-                val app = checkNotNull(this[APPLICATION_KEY])
-                val db = FirebaseFirestore.getInstance(app.getString(R.string.firestore_database_id))
-                ScanViewModel(ExamRepository(db), OmrAiService(), displayName)
+                ScanViewModel(dataSource, OmrAiService(), scanDefaultName)
             }
         }
     )
@@ -219,12 +254,14 @@ private fun AuthenticatedShell(
                     AppTab.HOME -> {
                         HomeScreen(
                             userDisplayName = displayName,
+                            isGuestMode = isGuestMode,
                             language = language,
                             strings = strings,
                             examsState = teacherExamsState,
                             submissionsState = mySubmissionsState,
                             onToggleLanguage = onToggleLanguage,
                             onSignOut = onSignOut,
+                            onSignInRequest = onSignInRequest,
                             onNavigateToScan = { currentTab = AppTab.SCAN },
                             onFindExamByCode = { code ->
                                 scanViewModel.setScanningRole(ScannedByRole.STUDENT)
@@ -251,6 +288,7 @@ private fun AuthenticatedShell(
                         ScanScreen(
                             scanViewModel = scanViewModel,
                             teacherExamsState = teacherExamsState,
+                            isGuestMode = isGuestMode,
                             strings = strings,
                             onDoneToHome = { currentTab = AppTab.RESULTS }
                         )
@@ -260,6 +298,7 @@ private fun AuthenticatedShell(
                         ExamsScreen(
                             currentUserId = uid,
                             teacherName = displayName,
+                            dataSource = dataSource,
                             dashboardViewModel = dashboardViewModel,
                             strings = strings,
                             showCreateTrigger = triggerCreateExam,

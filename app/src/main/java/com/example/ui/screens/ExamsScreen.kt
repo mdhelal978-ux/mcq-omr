@@ -41,12 +41,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.example.R
-import com.example.data.ExamRepository
+import com.example.data.ExamDataSource
 import com.example.i18n.AppStrings
 import com.example.model.Exam
 import com.example.model.ExamStatus
@@ -57,12 +55,12 @@ import com.example.ui.theme.WarmAmber
 import com.example.ui.viewmodel.DashboardViewModel
 import com.example.ui.viewmodel.ExamDetailViewModel
 import com.example.ui.viewmodel.UiState
-import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun ExamsScreen(
     currentUserId: String,
     teacherName: String,
+    dataSource: ExamDataSource,
     dashboardViewModel: DashboardViewModel,
     strings: AppStrings,
     showCreateTrigger: Boolean,
@@ -93,7 +91,7 @@ fun ExamsScreen(
             BackHandler { selectedExamId = null }
             val detailVm: ExamDetailViewModel = viewModel(
                 key = "${currentUserId}_${selectedExam.id}",
-                factory = examDetailViewModelFactory(currentUserId, selectedExam.id)
+                factory = examDetailViewModelFactory(dataSource, currentUserId, selectedExam.id)
             )
             ExamDetailPane(
                 exam = selectedExam,
@@ -216,7 +214,7 @@ fun ExamsScreen(
                         if (activeExam != null) {
                             val detailVm: ExamDetailViewModel = viewModel(
                                 key = "${currentUserId}_${activeExam.id}",
-                                factory = examDetailViewModelFactory(currentUserId, activeExam.id)
+                                factory = examDetailViewModelFactory(dataSource, currentUserId, activeExam.id)
                             )
                             ExamDetailPane(
                                 exam = activeExam,
@@ -401,10 +399,12 @@ private fun EmptyExamsPlaceholder(
     }
 }
 
-private fun examDetailViewModelFactory(teacherId: String, examId: String) = viewModelFactory {
+private fun examDetailViewModelFactory(
+    dataSource: ExamDataSource,
+    teacherId: String,
+    examId: String
+) = viewModelFactory {
     initializer {
-        val app = checkNotNull(this[androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
-        val db = FirebaseFirestore.getInstance(app.getString(R.string.firestore_database_id))
-        ExamDetailViewModel(ExamRepository(db), teacherId, examId)
+        ExamDetailViewModel(dataSource, teacherId, examId)
     }
 }

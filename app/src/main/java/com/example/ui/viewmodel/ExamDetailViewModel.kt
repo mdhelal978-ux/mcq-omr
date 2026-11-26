@@ -3,7 +3,7 @@ package com.example.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.ExamRepository
+import com.example.data.ExamDataSource
 import com.example.model.Submission
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 class ExamDetailViewModel(
-    repository: ExamRepository,
+    repository: ExamDataSource,
     teacherId: String,
     examId: String
 ) : ViewModel() {

@@ -3,7 +3,7 @@ package com.example.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.ExamRepository
+import com.example.data.ExamDataSource
 import com.example.model.Exam
 import com.example.model.ExamStatus
 import com.example.model.OptionStyle
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class DashboardViewModel(
-    private val repository: ExamRepository,
+    private val repository: ExamDataSource,
     private val currentUserId: String
 ) : ViewModel() {
 
