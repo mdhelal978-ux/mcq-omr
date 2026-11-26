@@ -79,7 +79,7 @@ fun HomeScreen(
     submissionsState: UiState<List<Submission>>,
     onToggleLanguage: () -> Unit,
     onSignOut: () -> Unit,
-    onSignInRequest: () -> Unit,
+    onSignInRequest: (() -> Unit)?,
     onNavigateToScan: () -> Unit,
     onFindExamByCode: (String) -> Unit,
     onOpenCreateExam: () -> Unit,
@@ -152,20 +152,22 @@ fun HomeScreen(
                             onToggle = onToggleLanguage
                         )
                         if (isGuestMode) {
-                            OutlinedButton(
-                                onClick = onSignInRequest,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .heightIn(min = 48.dp)
-                                    .testTag("home_sign_in_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Login,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(strings.signInButton)
+                            if (onSignInRequest != null) {
+                                OutlinedButton(
+                                    onClick = onSignInRequest,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .heightIn(min = 48.dp)
+                                        .testTag("home_sign_in_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Login,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(strings.signInButton)
+                                }
                             }
                         } else {
                             IconButton(

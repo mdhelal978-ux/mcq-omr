@@ -72,6 +72,7 @@ import com.example.ui.theme.ShikkhaScanTheme
 import com.example.ui.viewmodel.DashboardViewModel
 import com.example.ui.viewmodel.ScanViewModel
 import com.google.firebase.Firebase
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -121,6 +122,28 @@ private fun AppRoot(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val isFirebaseAvailable = remember(context) { FirebaseApp.getApps(context).isNotEmpty() }
+
+    if (!isFirebaseAvailable) {
+        val localDataSource = remember(context) {
+            LocalExamRepository(context.applicationContext)
+        }
+        key(LocalExamRepository.GUEST_UID) {
+            AppShell(
+                uid = LocalExamRepository.GUEST_UID,
+                displayName = strings.guestModeBadge,
+                isGuestMode = true,
+                dataSource = localDataSource,
+                language = language,
+                strings = strings,
+                onToggleLanguage = onToggleLanguage,
+                onSignOut = {},
+                onSignInRequest = null
+            )
+        }
+        return
+    }
+
     val credentialManager = remember(context) { CredentialManager.create(context) }
     val auth = Firebase.auth
     val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
@@ -159,7 +182,7 @@ private fun AppRoot(
                         continueAsGuest = false
                         signOut(credentialManager = credentialManager, scope = scope)
                     },
-                    onSignInRequest = {}
+                    onSignInRequest = null
                 )
             }
         }
@@ -205,7 +228,7 @@ private fun AppShell(
     strings: AppStrings,
     onToggleLanguage: () -> Unit,
     onSignOut: () -> Unit,
-    onSignInRequest: () -> Unit
+    onSignInRequest: (() -> Unit)?
 ) {
     val scanDefaultName = if (isGuestMode) "" else displayName
 
