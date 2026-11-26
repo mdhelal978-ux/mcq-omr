@@ -25,13 +25,11 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Set up Android SDK and accept licenses
-        uses: android-actions/setup-android@v3
-
-      - name: Ensure Android SDK licenses are accepted
+      - name: Accept Android SDK licenses
         run: |
           SDK_DIR="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
           if [ -n "$SDK_DIR" ]; then
+            mkdir -p "$SDK_DIR/licenses"
             SDKMANAGER=$(find "$SDK_DIR" -name sdkmanager -type f 2>/dev/null | head -n 1 || true)
             if [ -n "$SDKMANAGER" ]; then
               yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
@@ -61,7 +59,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.3.1"
-          validate-wrappers: false
 
       - name: Build Debug APK
         run: gradle :app:assembleDebug --no-daemon --no-configuration-cache
