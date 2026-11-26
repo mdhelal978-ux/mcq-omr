@@ -1,0 +1,266 @@
+{
+  "entities": {
+    "Exam": {
+      "title": "Exam",
+      "description": "An MCQ exam and official answer key created by a teacher.",
+      "type": "object",
+      "properties": {
+        "examCode": {
+          "type": "string",
+          "description": "Short uppercase shareable code used by students to load the exam."
+        },
+        "teacherId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the teacher who created the exam."
+        },
+        "teacherName": {
+          "type": "string",
+          "description": "Display name of the teacher."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the exam."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject name of the exam."
+        },
+        "totalQuestions": {
+          "type": "integer",
+          "description": "Total number of MCQ questions (5 to 100)."
+        },
+        "optionStyle": {
+          "type": "string",
+          "enum": ["ABCD", "BN_KAKH"],
+          "description": "Bubble labeling style on the paper OMR sheet."
+        },
+        "marksPerCorrect": {
+          "type": "number",
+          "description": "Positive marks awarded per correct answer."
+        },
+        "negativeMark": {
+          "type": "number",
+          "description": "Marks deducted per wrong answer."
+        },
+        "answerKey": {
+          "type": "array",
+          "description": "Normalized list of correct options (A, B, C, or D)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "closed"],
+          "description": "Whether the exam is currently accepting student submissions."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created (clients write FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (clients write FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "examCode",
+        "teacherId",
+        "teacherName",
+        "title",
+        "subject",
+        "totalQuestions",
+        "optionStyle",
+        "marksPerCorrect",
+        "negativeMark",
+        "answerKey",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ExamCodeLookup": {
+      "title": "ExamCodeLookup",
+      "description": "Maps a shareable exam code to its exam document ID for direct lookup.",
+      "type": "object",
+      "properties": {
+        "examId": {
+          "type": "string",
+          "description": "Document ID of the referenced exam."
+        },
+        "teacherId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the teacher."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the exam."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject of the exam."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "closed"],
+          "description": "Exam availability status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when updated."
+        }
+      },
+      "required": [
+        "examId",
+        "teacherId",
+        "title",
+        "subject",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "A scanned and graded MCQ answer sheet submission.",
+      "type": "object",
+      "properties": {
+        "examId": {
+          "type": "string",
+          "description": "ID of the exam being graded."
+        },
+        "examCode": {
+          "type": "string",
+          "description": "Code of the exam."
+        },
+        "examTitle": {
+          "type": "string",
+          "description": "Title snapshot of the exam."
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject snapshot of the exam."
+        },
+        "teacherId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the exam teacher."
+        },
+        "submittedByUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user who scanned and submitted the sheet."
+        },
+        "scannedByRole": {
+          "type": "string",
+          "enum": ["student", "teacher"],
+          "description": "Role of the user scanning the sheet."
+        },
+        "studentName": {
+          "type": "string",
+          "description": "Name of the student on the answer sheet."
+        },
+        "studentRoll": {
+          "type": "string",
+          "description": "Roll or ID number of the student."
+        },
+        "optionStyle": {
+          "type": "string",
+          "enum": ["ABCD", "BN_KAKH"],
+          "description": "Bubble labeling style."
+        },
+        "detectedAnswers": {
+          "type": "array",
+          "description": "Detected options per question (A, B, C, D, NONE, or MULTIPLE)."
+        },
+        "correctAnswers": {
+          "type": "array",
+          "description": "Snapshot of the exam answer key at submission time."
+        },
+        "correctCount": {
+          "type": "integer",
+          "description": "Number of correct answers."
+        },
+        "wrongCount": {
+          "type": "integer",
+          "description": "Number of wrong or multiple-marked answers."
+        },
+        "unansweredCount": {
+          "type": "integer",
+          "description": "Number of unanswered questions."
+        },
+        "score": {
+          "type": "number",
+          "description": "Final net score after applying negative marking."
+        },
+        "maxScore": {
+          "type": "number",
+          "description": "Maximum possible score for the exam."
+        },
+        "percentage": {
+          "type": "number",
+          "description": "Percentage score clamped between 0 and 100."
+        },
+        "aiConfidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "Gemini Vision scan confidence rating."
+        },
+        "aiNotes": {
+          "type": "string",
+          "description": "Optional AI diagnostic note about sheet clarity or smudges."
+        },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of submission (clients write FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "examId",
+        "examCode",
+        "examTitle",
+        "subject",
+        "teacherId",
+        "submittedByUid",
+        "scannedByRole",
+        "studentName",
+        "studentRoll",
+        "optionStyle",
+        "detectedAnswers",
+        "correctAnswers",
+        "correctCount",
+        "wrongCount",
+        "unansweredCount",
+        "score",
+        "maxScore",
+        "percentage",
+        "aiConfidence",
+        "submittedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/exams/{examId}": {
+      "schema": {
+        "$ref": "#/entities/Exam"
+      },
+      "description": "Teacher-owned MCQ exams and answer keys."
+    },
+    "/examCodes/{examCode}": {
+      "schema": {
+        "$ref": "#/entities/ExamCodeLookup"
+      },
+      "description": "Shareable exam code lookup index."
+    },
+    "/submissions/{submissionId}": {
+      "schema": {
+        "$ref": "#/entities/Submission"
+      },
+      "description": "Graded MCQ answer sheet submissions accessible to submitter and exam teacher."
+    }
+  }
+}
