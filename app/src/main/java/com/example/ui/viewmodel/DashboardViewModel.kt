@@ -8,7 +8,6 @@ import com.example.model.Exam
 import com.example.model.ExamStatus
 import com.example.model.OptionStyle
 import com.example.model.Submission
-import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,13 +26,9 @@ class DashboardViewModel(
     val teacherExamsState: StateFlow<UiState<List<Exam>>> = repository.observeTeacherExams(currentUserId)
         .map<List<Exam>, UiState<List<Exam>>> { UiState.Success(it) }
         .catch { error ->
-            val firestoreError = generateSequence(error) { it.cause }
-                .filterIsInstance<FirebaseFirestoreException>()
-                .firstOrNull()
-            if (firestoreError == null && error is CancellationException) throw error
-            val rootError = firestoreError ?: error
-            Log.w(TAG, "Error observing teacher exams", rootError)
-            emit(UiState.Error(rootError.localizedMessage ?: "Failed to load exams"))
+            if (error is CancellationException) throw error
+            Log.w(TAG, "Error observing teacher exams", error)
+            emit(UiState.Error(error.localizedMessage ?: "Failed to load exams"))
         }
         .stateIn(
             scope = viewModelScope,
@@ -44,13 +39,9 @@ class DashboardViewModel(
     val mySubmissionsState: StateFlow<UiState<List<Submission>>> = repository.observeMySubmissions(currentUserId)
         .map<List<Submission>, UiState<List<Submission>>> { UiState.Success(it) }
         .catch { error ->
-            val firestoreError = generateSequence(error) { it.cause }
-                .filterIsInstance<FirebaseFirestoreException>()
-                .firstOrNull()
-            if (firestoreError == null && error is CancellationException) throw error
-            val rootError = firestoreError ?: error
-            Log.w(TAG, "Error observing submissions", rootError)
-            emit(UiState.Error(rootError.localizedMessage ?: "Failed to load results"))
+            if (error is CancellationException) throw error
+            Log.w(TAG, "Error observing submissions", error)
+            emit(UiState.Error(error.localizedMessage ?: "Failed to load results"))
         }
         .stateIn(
             scope = viewModelScope,

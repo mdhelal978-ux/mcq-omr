@@ -30,9 +30,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,27 +41,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import androidx.credentials.CredentialManager
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.data.ExamDataSource
-import com.example.data.ExamRepository
-import com.example.data.LocalExamRepository
 import com.example.data.LocalePreferences
 import com.example.data.OmrAiService
-import com.example.data.attemptAutoSignIn
-import com.example.data.authStateFlow
-import com.example.data.signOut
-import com.example.firebase.configureAppCheck
+import com.example.data.local.RoomExamRepository
 import com.example.i18n.AppLanguage
 import com.example.i18n.AppStrings
 import com.example.i18n.stringsFor
 import com.example.model.ScannedByRole
 import com.example.model.Submission
-import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.ExamsScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.ResultsScreen
@@ -71,10 +61,6 @@ import com.example.ui.screens.ScanScreen
 import com.example.ui.theme.ShikkhaScanTheme
 import com.example.ui.viewmodel.DashboardViewModel
 import com.example.ui.viewmodel.ScanViewModel
-import com.google.firebase.Firebase
-import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 enum class AppTab(val testTag: String) {
@@ -87,8 +73,6 @@ enum class AppTab(val testTag: String) {
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Must configure App Check with launch intent before setContent, ViewModels, or Firebase calls
-        configureAppCheck(this, intent)
         enableEdgeToEdge()
 
         setContent {
@@ -97,6 +81,7 @@ class MainActivity : ComponentActivity() {
             val localePrefs = remember(context) { LocalePreferences(context.applicationContext) }
             val language by localePrefs.languageFlow.collectAsStateWithLifecycle(initialValue = AppLanguage.BENGALI)
             val strings = remember(language) { stringsFor(language) }
+            val roomDataSource = remember(context) { RoomExamRepository(context.applicationContext) }
 
             val toggleLanguage: () -> Unit = {
                 val next = if (language == AppLanguage.BENGALI) AppLanguage.ENGLISH else AppLanguage.BENGALI
@@ -104,9 +89,12 @@ class MainActivity : ComponentActivity() {
             }
 
             ShikkhaScanTheme {
-                AppRoot(
-                    language = language,
+                AppShell(
+                    uid = RoomExamRepository.LOCAL_USER_ID,
+                    displayName = strings.appName,
+                    dataSource = roomDataSource,
                     strings = strings,
+                    language = language,
                     onToggleLanguage = toggleLanguage
                 )
             }
@@ -115,123 +103,14 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun AppRoot(
-    language: AppLanguage,
-    strings: AppStrings,
-    onToggleLanguage: () -> Unit
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val isFirebaseAvailable = remember(context) { FirebaseApp.getApps(context).isNotEmpty() }
-
-    if (!isFirebaseAvailable) {
-        val localDataSource = remember(context) {
-            LocalExamRepository(context.applicationContext)
-        }
-        key(LocalExamRepository.GUEST_UID) {
-            AppShell(
-                uid = LocalExamRepository.GUEST_UID,
-                displayName = strings.guestModeBadge,
-                isGuestMode = true,
-                dataSource = localDataSource,
-                language = language,
-                strings = strings,
-                onToggleLanguage = onToggleLanguage,
-                onSignOut = {},
-                onSignInRequest = null
-            )
-        }
-        return
-    }
-
-    val credentialManager = remember(context) { CredentialManager.create(context) }
-    val auth = Firebase.auth
-    val currentUser by auth.authStateFlow().collectAsStateWithLifecycle(initialValue = auth.currentUser)
-    var continueAsGuest by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        if (auth.currentUser == null && !continueAsGuest) {
-            attemptAutoSignIn(
-                context = context,
-                credentialManager = credentialManager,
-                onAuthSuccess = { continueAsGuest = false },
-                onUnauthenticated = {},
-                scope = scope
-            )
-        }
-    }
-
-    val user = currentUser
-    when {
-        user != null -> {
-            val displayName = user.displayName.orEmpty().ifBlank { user.email.orEmpty() }
-            val cloudDataSource = remember(user.uid, context) {
-                val db = FirebaseFirestore.getInstance(context.getString(R.string.firestore_database_id))
-                ExamRepository(db)
-            }
-            key(user.uid) {
-                AppShell(
-                    uid = user.uid,
-                    displayName = displayName,
-                    isGuestMode = false,
-                    dataSource = cloudDataSource,
-                    language = language,
-                    strings = strings,
-                    onToggleLanguage = onToggleLanguage,
-                    onSignOut = {
-                        continueAsGuest = false
-                        signOut(credentialManager = credentialManager, scope = scope)
-                    },
-                    onSignInRequest = null
-                )
-            }
-        }
-
-        continueAsGuest -> {
-            val localDataSource = remember(context) {
-                LocalExamRepository(context.applicationContext)
-            }
-            key(LocalExamRepository.GUEST_UID) {
-                AppShell(
-                    uid = LocalExamRepository.GUEST_UID,
-                    displayName = strings.guestModeBadge,
-                    isGuestMode = true,
-                    dataSource = localDataSource,
-                    language = language,
-                    strings = strings,
-                    onToggleLanguage = onToggleLanguage,
-                    onSignOut = {},
-                    onSignInRequest = { continueAsGuest = false }
-                )
-            }
-        }
-
-        else -> {
-            AuthScreen(
-                language = language,
-                strings = strings,
-                onToggleLanguage = onToggleLanguage,
-                onAuthSuccess = { continueAsGuest = false },
-                onContinueWithoutSignIn = { continueAsGuest = true }
-            )
-        }
-    }
-}
-
-@Composable
 private fun AppShell(
     uid: String,
     displayName: String,
-    isGuestMode: Boolean,
     dataSource: ExamDataSource,
-    language: AppLanguage,
     strings: AppStrings,
-    onToggleLanguage: () -> Unit,
-    onSignOut: () -> Unit,
-    onSignInRequest: (() -> Unit)?
+    language: AppLanguage,
+    onToggleLanguage: () -> Unit
 ) {
-    val scanDefaultName = if (isGuestMode) "" else displayName
-
     val dashboardViewModel: DashboardViewModel = viewModel(
         key = "dash_$uid",
         factory = viewModelFactory {
@@ -245,7 +124,7 @@ private fun AppShell(
         key = "scan_$uid",
         factory = viewModelFactory {
             initializer {
-                ScanViewModel(dataSource, OmrAiService(), scanDefaultName)
+                ScanViewModel(dataSource, OmrAiService(), "")
             }
         }
     )
@@ -277,14 +156,11 @@ private fun AppShell(
                     AppTab.HOME -> {
                         HomeScreen(
                             userDisplayName = displayName,
-                            isGuestMode = isGuestMode,
                             language = language,
                             strings = strings,
                             examsState = teacherExamsState,
                             submissionsState = mySubmissionsState,
                             onToggleLanguage = onToggleLanguage,
-                            onSignOut = onSignOut,
-                            onSignInRequest = onSignInRequest,
                             onNavigateToScan = { currentTab = AppTab.SCAN },
                             onFindExamByCode = { code ->
                                 scanViewModel.setScanningRole(ScannedByRole.STUDENT)
@@ -311,7 +187,6 @@ private fun AppShell(
                         ScanScreen(
                             scanViewModel = scanViewModel,
                             teacherExamsState = teacherExamsState,
-                            isGuestMode = isGuestMode,
                             strings = strings,
                             onDoneToHome = { currentTab = AppTab.RESULTS }
                         )

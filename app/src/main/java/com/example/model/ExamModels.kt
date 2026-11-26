@@ -1,10 +1,5 @@
 package com.example.model
 
-import androidx.annotation.Keep
-import com.google.firebase.Timestamp
-import com.google.firebase.firestore.DocumentId
-import com.google.firebase.firestore.IgnoreExtraProperties
-import com.google.firebase.firestore.ServerTimestamp
 import kotlin.math.roundToInt
 
 enum class OptionStyle(val rawValue: String) {
@@ -64,10 +59,8 @@ enum class AiConfidence(val rawValue: String) {
     }
 }
 
-@Keep
-@IgnoreExtraProperties
 data class Exam(
-    @DocumentId val id: String = "",
+    val id: String = "",
     val examCode: String = "",
     val teacherId: String = "",
     val teacherName: String = "",
@@ -79,31 +72,16 @@ data class Exam(
     val negativeMark: Double = 0.0,
     val answerKey: List<String> = emptyList(),
     val status: String = ExamStatus.ACTIVE.rawValue,
-    @ServerTimestamp val createdAt: Timestamp? = null,
-    @ServerTimestamp val updatedAt: Timestamp? = null
+    val createdAtMillis: Long = System.currentTimeMillis(),
+    val updatedAtMillis: Long = System.currentTimeMillis()
 ) {
     val parsedOptionStyle: OptionStyle get() = OptionStyle.fromRaw(optionStyle)
     val parsedStatus: ExamStatus get() = ExamStatus.fromRaw(status)
     val questionCountInt: Int get() = totalQuestions.toInt().coerceIn(5, 100)
 }
 
-@Keep
-@IgnoreExtraProperties
-data class ExamCodeLookup(
-    @DocumentId val id: String = "",
-    val examId: String = "",
-    val teacherId: String = "",
-    val title: String = "",
-    val subject: String = "",
-    val status: String = ExamStatus.ACTIVE.rawValue,
-    @ServerTimestamp val createdAt: Timestamp? = null,
-    @ServerTimestamp val updatedAt: Timestamp? = null
-)
-
-@Keep
-@IgnoreExtraProperties
 data class Submission(
-    @DocumentId val id: String = "",
+    val id: String = "",
     val examId: String = "",
     val examCode: String = "",
     val examTitle: String = "",
@@ -124,7 +102,7 @@ data class Submission(
     val percentage: Double = 0.0,
     val aiConfidence: String = AiConfidence.MEDIUM.rawValue,
     val aiNotes: String? = null,
-    @ServerTimestamp val submittedAt: Timestamp? = null
+    val submittedAtMillis: Long = System.currentTimeMillis()
 ) {
     val parsedOptionStyle: OptionStyle get() = OptionStyle.fromRaw(optionStyle)
     val parsedRole: ScannedByRole get() = ScannedByRole.fromRaw(scannedByRole)

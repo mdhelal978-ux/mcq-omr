@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.ExamDataSource
 import com.example.model.Submission
-import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,13 +22,9 @@ class ExamDetailViewModel(
         repository.observeExamSubmissions(teacherId, examId)
             .map<List<Submission>, UiState<List<Submission>>> { UiState.Success(it) }
             .catch { error ->
-                val firestoreError = generateSequence(error) { it.cause }
-                    .filterIsInstance<FirebaseFirestoreException>()
-                    .firstOrNull()
-                if (firestoreError == null && error is CancellationException) throw error
-                val rootError = firestoreError ?: error
-                Log.w(TAG, "Error observing exam submissions", rootError)
-                emit(UiState.Error(rootError.localizedMessage ?: "Failed to load exam submissions"))
+                if (error is CancellationException) throw error
+                Log.w(TAG, "Error observing exam submissions", error)
+                emit(UiState.Error(error.localizedMessage ?: "Failed to load exam submissions"))
             }
             .stateIn(
                 scope = viewModelScope,

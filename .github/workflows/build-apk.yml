@@ -55,12 +55,12 @@ jobs:
             fi
           fi
 
-      - name: Restore Google Services config if secret is provided
+      - name: Configure optional Gemini API key
         env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON" ] && [ ! -f app/google-services.json ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+          if [ -n "$GEMINI_API_KEY" ]; then
+            printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > .env
           fi
 
       - name: Set up Gradle

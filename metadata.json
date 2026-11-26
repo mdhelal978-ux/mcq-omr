@@ -1,6 +1,6 @@
 {
   "name": "ShikkhaScan",
-  "description": "Bilingual school MCQ OMR answer sheet scanner and instant grading app with teacher answer keys and cloud sync.",
+  "description": "Bilingual school MCQ OMR answer sheet scanner and instant grading app with teacher answer keys and local database storage.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

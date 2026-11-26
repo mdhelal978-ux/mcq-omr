@@ -94,6 +94,7 @@ import com.example.ui.theme.ScanEmerald
 import com.example.ui.theme.WarmAmber
 import com.example.ui.theme.WrongCrimson
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -217,9 +218,10 @@ fun SubmissionResultCard(
         submission.percentage >= 40.0 -> WarmAmber
         else -> WrongCrimson
     }
-    val dateLabel = remember(submission.submittedAt) {
-        val date = submission.submittedAt?.toDate()
-        if (date != null) SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()).format(date) else ""
+    val dateLabel = remember(submission.submittedAtMillis) {
+        if (submission.submittedAtMillis > 0L) {
+            SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()).format(Date(submission.submittedAtMillis))
+        } else ""
     }
 
     Card(

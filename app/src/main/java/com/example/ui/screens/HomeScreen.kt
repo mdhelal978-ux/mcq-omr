@@ -22,8 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -34,7 +32,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -72,14 +69,11 @@ import com.example.ui.viewmodel.UiState
 @Composable
 fun HomeScreen(
     userDisplayName: String,
-    isGuestMode: Boolean,
     language: AppLanguage,
     strings: AppStrings,
     examsState: UiState<List<Exam>>,
     submissionsState: UiState<List<Submission>>,
     onToggleLanguage: () -> Unit,
-    onSignOut: () -> Unit,
-    onSignInRequest: (() -> Unit)?,
     onNavigateToScan: () -> Unit,
     onFindExamByCode: (String) -> Unit,
     onOpenCreateExam: () -> Unit,
@@ -127,63 +121,24 @@ fun HomeScreen(
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
-                            if (isGuestMode) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.secondaryContainer
-                                ) {
-                                    Text(
-                                        text = strings.guestModeBadge,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        LanguageToggleChip(
-                            language = language,
-                            strings = strings,
-                            onToggle = onToggleLanguage
-                        )
-                        if (isGuestMode) {
-                            if (onSignInRequest != null) {
-                                OutlinedButton(
-                                    onClick = onSignInRequest,
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier
-                                        .heightIn(min = 48.dp)
-                                        .testTag("home_sign_in_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Login,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(strings.signInButton)
-                                }
-                            }
-                        } else {
-                            IconButton(
-                                onClick = onSignOut,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .testTag("sign_out_button")
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Logout,
-                                    contentDescription = strings.signOut,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                Text(
+                                    text = strings.guestModeBadge,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
                         }
                     }
+                    LanguageToggleChip(
+                        language = language,
+                        strings = strings,
+                        onToggle = onToggleLanguage
+                    )
                 }
             }
 
