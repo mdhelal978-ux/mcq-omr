@@ -142,7 +142,29 @@ data class AppStrings(
     val retry: String,
     val validationExamFields: String,
     val validationStudentInfo: String,
-    val examNotFoundError: String
+    val examNotFoundError: String,
+    // Question Paper Layout & AI Settings
+    val scannerEngineTitle: String,
+    val engineGeminiActive: String,
+    val engineOfflineActive: String,
+    val configureAiKeyButton: String,
+    val columnLayoutLabel: String,
+    val colAuto: String,
+    val colOne: String,
+    val colTwo: String,
+    val optionArrangementLabel: String,
+    val optAuto: String,
+    val optHorizontal: String,
+    val optGrid2x2: String,
+    val optVertical: String,
+    val aiSettingsDialogTitle: String,
+    val aiSettingsDialogBody: String,
+    val geminiApiKeyLabel: String,
+    val geminiApiKeyHint: String,
+    val saveKeyButton: String,
+    val clearKeyButton: String,
+    val tapToZoomSheet: String,
+    val closePreview: String
 )
 
 val BengaliStrings = AppStrings(
@@ -268,7 +290,28 @@ val BengaliStrings = AppStrings(
     retry = "আবার চেষ্টা করুন",
     validationExamFields = "অনুগ্রহ করে পরীক্ষার নাম, বিষয় এবং সঠিক প্রশ্ন সংখ্যা লিখুন।",
     validationStudentInfo = "অনুগ্রহ করে শিক্ষার্থীর নাম ও রোল নম্বর লিখুন।",
-    examNotFoundError = "এই কোডের কোনো সক্রিয় পরীক্ষা পাওয়া যায়নি।"
+    examNotFoundError = "এই কোডের কোনো সক্রিয় পরীক্ষা পাওয়া যায়নি।",
+    scannerEngineTitle = "প্রশ্নপত্র ও স্ক্যানার সেটিংস",
+    engineGeminiActive = "Gemini AI সক্রিয়",
+    engineOfflineActive = "অফলাইন অপটিক্যাল মোড",
+    configureAiKeyButton = "AI কী সেটিংস",
+    columnLayoutLabel = "প্রশ্নপত্রের কলাম",
+    colAuto = "স্বয়ংক্রিয়",
+    colOne = "১ কলাম",
+    colTwo = "২ কলাম",
+    optionArrangementLabel = "অপশনের বিন্যাস",
+    optAuto = "স্বয়ংক্রিয়",
+    optHorizontal = "পাশাপাশি",
+    optGrid2x2 = "২×২ গ্রিড",
+    optVertical = "লম্বালম্বি",
+    aiSettingsDialogTitle = "Gemini AI স্ক্যানার সেটিংস",
+    aiSettingsDialogBody = "প্রশ্নপত্রে বৃত্ত ভরাট করা উত্তর আরও নিখুঁতভাবে পড়তে চাইলে আপনার নিজস্ব Gemini API কী যোগ করতে পারেন। কী ছাড়াও অফলাইন স্ক্যানার প্রতিটি প্রশ্নের সবচেয়ে গাঢ় বৃত্তটি স্বয়ংক্রিয়ভাবে শনাক্ত করবে।",
+    geminiApiKeyLabel = "Gemini API Key (ঐচ্ছিক)",
+    geminiApiKeyHint = "AIza... দিয়ে শুরু কী দিন",
+    saveKeyButton = "সংরক্ষণ",
+    clearKeyButton = "কী মুছুন",
+    tapToZoomSheet = "বড় করে দেখুন",
+    closePreview = "বন্ধ করুন"
 )
 
 val EnglishStrings = AppStrings(
@@ -394,7 +437,28 @@ val EnglishStrings = AppStrings(
     retry = "Retry",
     validationExamFields = "Please enter an exam title, subject, and valid question count.",
     validationStudentInfo = "Please enter the student's name and roll number.",
-    examNotFoundError = "No active exam found for that Exam Code."
+    examNotFoundError = "No active exam found for that Exam Code.",
+    scannerEngineTitle = "Question Paper & Scanner Mode",
+    engineGeminiActive = "Gemini AI Active",
+    engineOfflineActive = "Offline Optical Mode",
+    configureAiKeyButton = "AI Key",
+    columnLayoutLabel = "Question Columns",
+    colAuto = "Auto",
+    colOne = "1 Col",
+    colTwo = "2 Cols",
+    optionArrangementLabel = "Option Layout",
+    optAuto = "Auto",
+    optHorizontal = "Inline",
+    optGrid2x2 = "2x2 Grid",
+    optVertical = "Stacked",
+    aiSettingsDialogTitle = "Gemini AI Scanner Settings",
+    aiSettingsDialogBody = "Optionally paste your own Gemini API key for maximum accuracy on complex printed question papers. Without a key, the offline scanner automatically selects the darkest marked bubble per question.",
+    geminiApiKeyLabel = "Gemini API Key (Optional)",
+    geminiApiKeyHint = "Paste key starting with AIza...",
+    saveKeyButton = "Save Key",
+    clearKeyButton = "Clear Key",
+    tapToZoomSheet = "Tap to zoom",
+    closePreview = "Close"
 )
 
 fun stringsFor(language: AppLanguage): AppStrings =

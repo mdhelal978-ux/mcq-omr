@@ -57,8 +57,10 @@ import com.example.i18n.AppLanguage
 import com.example.i18n.AppStrings
 import com.example.model.Exam
 import com.example.model.ExamStatus
+import com.example.model.ScannerEngineMode
 import com.example.model.Submission
 import com.example.ui.components.LanguageToggleChip
+import com.example.ui.components.ScannerEngineBadge
 import com.example.ui.components.SubmissionResultCard
 import com.example.ui.theme.AcademicIndigo
 import com.example.ui.theme.AcademicIndigoDark
@@ -79,6 +81,8 @@ fun HomeScreen(
     onOpenCreateExam: () -> Unit,
     onNavigateToResults: () -> Unit,
     onOpenSubmission: (Submission) -> Unit,
+    activeEngineMode: ScannerEngineMode = ScannerEngineMode.OFFLINE_OPTICAL,
+    onOpenAiSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var codeInput by remember { mutableStateOf("") }
@@ -134,11 +138,22 @@ fun HomeScreen(
                             }
                         }
                     }
-                    LanguageToggleChip(
-                        language = language,
-                        strings = strings,
-                        onToggle = onToggleLanguage
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ScannerEngineBadge(
+                            engineMode = activeEngineMode,
+                            strings = strings,
+                            onClick = onOpenAiSettings,
+                            modifier = Modifier.testTag("home_engine_badge")
+                        )
+                        LanguageToggleChip(
+                            language = language,
+                            strings = strings,
+                            onToggle = onToggleLanguage
+                        )
+                    }
                 }
             }
 

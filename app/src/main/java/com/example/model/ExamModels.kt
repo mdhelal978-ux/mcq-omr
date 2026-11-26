@@ -59,6 +59,34 @@ enum class AiConfidence(val rawValue: String) {
     }
 }
 
+enum class QuestionColumnMode(val rawValue: String) {
+    AUTO("auto"),
+    ONE_COL("one_col"),
+    TWO_COL("two_col");
+
+    companion object {
+        fun fromRaw(raw: String?): QuestionColumnMode =
+            entries.firstOrNull { it.rawValue == raw } ?: AUTO
+    }
+}
+
+enum class OptionArrangement(val rawValue: String) {
+    AUTO("auto"),
+    HORIZONTAL("horizontal"),
+    GRID_2X2("grid_2x2"),
+    VERTICAL("vertical");
+
+    companion object {
+        fun fromRaw(raw: String?): OptionArrangement =
+            entries.firstOrNull { it.rawValue == raw } ?: AUTO
+    }
+}
+
+enum class ScannerEngineMode(val rawValue: String) {
+    GEMINI_AI("gemini_ai"),
+    OFFLINE_OPTICAL("offline_optical")
+}
+
 data class Exam(
     val id: String = "",
     val examCode: String = "",

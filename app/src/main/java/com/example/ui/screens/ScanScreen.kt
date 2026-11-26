@@ -36,7 +36,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -73,9 +75,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.i18n.AppStrings
 import com.example.model.AiConfidence
 import com.example.model.Exam
+import com.example.model.OptionArrangement
+import com.example.model.QuestionColumnMode
 import com.example.model.ScannedByRole
 import com.example.ui.components.CameraPreviewScanner
 import com.example.ui.components.InstantResultContent
+import com.example.ui.components.ScannerEngineBadge
+import com.example.ui.components.ZoomableSheetPreviewDialog
 import com.example.ui.components.decodeBitmapFromUri
 import com.example.ui.components.formatScore
 import com.example.ui.theme.JetBrainsMonoFontFamily
@@ -92,6 +98,9 @@ fun ScanScreen(
     teacherExamsState: UiState<List<Exam>>,
     strings: AppStrings,
     onDoneToHome: () -> Unit,
+    onUpdateColumnMode: (QuestionColumnMode) -> Unit = { scanViewModel.setColumnMode(it) },
+    onUpdateOptionArrangement: (OptionArrangement) -> Unit = { scanViewModel.setOptionArrangement(it) },
+    onOpenAiSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by scanViewModel.uiState.collectAsStateWithLifecycle()
@@ -104,6 +113,7 @@ fun ScanScreen(
         )
     }
     var cameraErrorMsg by remember { mutableStateOf<String?>(null) }
+    var showZoomPreview by remember { mutableStateOf(false) }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -224,6 +234,21 @@ fun ScanScreen(
                         }
                     }
                     item {
+                        QuestionPaperLayoutCard(
+                            uiState = uiState,
+                            strings = strings,
+                            onSelectColumnMode = { mode ->
+                                scanViewModel.setColumnMode(mode)
+                                onUpdateColumnMode(mode)
+                            },
+                            onSelectOptionArrangement = { arrangement ->
+                                scanViewModel.setOptionArrangement(arrangement)
+                                onUpdateOptionArrangement(arrangement)
+                            },
+                            onOpenAiSettings = onOpenAiSettings
+                        )
+                    }
+                    item {
                         if (hasCameraPermission) {
                             CameraPreviewScanner(
                                 strings = strings,
@@ -342,6 +367,10 @@ fun ScanScreen(
                                     )
                                 }
                                 CircularProgressIndicator(color = ScanEmerald)
+                                ScannerEngineBadge(
+                                    engineMode = uiState.configuredEngineMode,
+                                    strings = strings
+                                )
                                 Text(
                                     text = strings.analyzingTitle,
                                     style = MaterialTheme.typography.titleMedium,
@@ -370,7 +399,8 @@ fun ScanScreen(
                                 exam = exam,
                                 strings = strings,
                                 onNameChange = scanViewModel::updateStudentName,
-                                onRollChange = scanViewModel::updateStudentRoll
+                                onRollChange = scanViewModel::updateStudentRoll,
+                                onZoomSheet = { showZoomPreview = true }
                             )
                         }
 
@@ -455,6 +485,15 @@ fun ScanScreen(
                 }
             }
         }
+    }
+
+    val zoomBmp = uiState.capturedBitmap
+    if (showZoomPreview && zoomBmp != null) {
+        ZoomableSheetPreviewDialog(
+            bitmap = zoomBmp,
+            strings = strings,
+            onDismiss = { showZoomPreview = false }
+        )
     }
 }
 
@@ -693,12 +732,111 @@ private fun SelectedExamBanner(
 }
 
 @Composable
+private fun QuestionPaperLayoutCard(
+    uiState: ScanUiState,
+    strings: AppStrings,
+    onSelectColumnMode: (QuestionColumnMode) -> Unit,
+    onSelectOptionArrangement: (OptionArrangement) -> Unit,
+    onOpenAiSettings: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(14.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                ScannerEngineBadge(
+                    engineMode = uiState.configuredEngineMode,
+                    strings = strings,
+                    onClick = onOpenAiSettings,
+                    modifier = Modifier.testTag("scan_engine_badge")
+                )
+                TextButton(
+                    onClick = onOpenAiSettings,
+                    modifier = Modifier
+                        .heightIn(min = 40.dp)
+                        .testTag("open_ai_settings_button")
+                ) {
+                    Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(strings.configureAiKeyButton, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+
+            Text(
+                text = strings.columnLayoutLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val colOptions = listOf(
+                    QuestionColumnMode.AUTO to strings.colAuto,
+                    QuestionColumnMode.ONE_COL to strings.colOne,
+                    QuestionColumnMode.TWO_COL to strings.colTwo
+                )
+                colOptions.forEach { (mode, label) ->
+                    FilterChip(
+                        selected = uiState.columnMode == mode,
+                        onClick = { onSelectColumnMode(mode) },
+                        label = { Text(label, maxLines = 1) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 44.dp)
+                            .testTag("col_mode_${mode.rawValue}")
+                    )
+                }
+            }
+
+            Text(
+                text = strings.optionArrangementLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val optLayouts = listOf(
+                    OptionArrangement.AUTO to strings.optAuto,
+                    OptionArrangement.HORIZONTAL to strings.optHorizontal,
+                    OptionArrangement.GRID_2X2 to strings.optGrid2x2,
+                    OptionArrangement.VERTICAL to strings.optVertical
+                )
+                optLayouts.forEach { (arrangement, label) ->
+                    FilterChip(
+                        selected = uiState.optionArrangement == arrangement,
+                        onClick = { onSelectOptionArrangement(arrangement) },
+                        label = { Text(label, maxLines = 1, style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 44.dp)
+                            .testTag("opt_layout_${arrangement.rawValue}")
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun VerifyAnswersHeaderCard(
     uiState: ScanUiState,
     exam: Exam,
     strings: AppStrings,
     onNameChange: (String) -> Unit,
-    onRollChange: (String) -> Unit
+    onRollChange: (String) -> Unit,
+    onZoomSheet: () -> Unit
 ) {
     val confidenceText = when (uiState.aiConfidence) {
         AiConfidence.HIGH -> strings.confidenceHigh
@@ -722,14 +860,36 @@ private fun VerifyAnswersHeaderCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 uiState.capturedBitmap?.let { bmp ->
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
-                            .size(72.dp)
+                            .size(76.dp)
                             .clip(RoundedCornerShape(12.dp))
-                    )
+                            .clickable(onClick = onZoomSheet)
+                            .testTag("verify_zoom_thumbnail")
+                    ) {
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = strings.tapToZoomSheet,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(4.dp)
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.65f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ZoomIn,
+                                contentDescription = strings.tapToZoomSheet,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -742,7 +902,12 @@ private fun VerifyAnswersHeaderCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
+                    ScannerEngineBadge(
+                        engineMode = uiState.lastScanEngineMode,
+                        strings = strings
+                    )
+                    Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),

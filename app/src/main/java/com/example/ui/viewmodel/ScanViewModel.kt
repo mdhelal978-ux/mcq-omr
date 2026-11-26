@@ -8,7 +8,10 @@ import com.example.data.OmrAiService
 import com.example.model.AiConfidence
 import com.example.model.Exam
 import com.example.model.GradedSummary
+import com.example.model.OptionArrangement
+import com.example.model.QuestionColumnMode
 import com.example.model.ScannedByRole
+import com.example.model.ScannerEngineMode
 import com.example.model.Submission
 import com.example.model.gradeOmrSheet
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +43,12 @@ data class ScanUiState(
     val livePreviewGrade: GradedSummary? = null,
     val isSubmitting: Boolean = false,
     val submittedResult: Submission? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val columnMode: QuestionColumnMode = QuestionColumnMode.AUTO,
+    val optionArrangement: OptionArrangement = OptionArrangement.AUTO,
+    val userGeminiApiKey: String = "",
+    val configuredEngineMode: ScannerEngineMode = ScannerEngineMode.OFFLINE_OPTICAL,
+    val lastScanEngineMode: ScannerEngineMode = ScannerEngineMode.OFFLINE_OPTICAL
 )
 
 class ScanViewModel(
@@ -50,9 +58,44 @@ class ScanViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
-        ScanUiState(studentName = defaultUserName)
+        ScanUiState(
+            studentName = defaultUserName,
+            configuredEngineMode = if (aiService.resolveEffectiveApiKey(null).isNotEmpty()) {
+                ScannerEngineMode.GEMINI_AI
+            } else {
+                ScannerEngineMode.OFFLINE_OPTICAL
+            }
+        )
     )
     val uiState: StateFlow<ScanUiState> = _uiState.asStateFlow()
+
+    fun syncPreferences(
+        userApiKey: String,
+        columnMode: QuestionColumnMode,
+        optionArrangement: OptionArrangement
+    ) {
+        val engine = if (aiService.resolveEffectiveApiKey(userApiKey).isNotEmpty()) {
+            ScannerEngineMode.GEMINI_AI
+        } else {
+            ScannerEngineMode.OFFLINE_OPTICAL
+        }
+        _uiState.update {
+            it.copy(
+                userGeminiApiKey = userApiKey,
+                columnMode = columnMode,
+                optionArrangement = optionArrangement,
+                configuredEngineMode = engine
+            )
+        }
+    }
+
+    fun setColumnMode(mode: QuestionColumnMode) {
+        _uiState.update { it.copy(columnMode = mode) }
+    }
+
+    fun setOptionArrangement(arrangement: OptionArrangement) {
+        _uiState.update { it.copy(optionArrangement = arrangement) }
+    }
 
     fun updateExamCodeInput(code: String) {
         _uiState.update { it.copy(examCodeInput = code.uppercase(), errorMessage = null) }
@@ -140,10 +183,14 @@ class ScanViewModel(
                     errorMessage = null
                 )
             }
+            val snapshot = _uiState.value
             val scanResult = aiService.scanAnswerSheet(
                 bitmap = bitmap,
                 totalQuestions = exam.questionCountInt,
-                optionStyle = exam.parsedOptionStyle
+                optionStyle = exam.parsedOptionStyle,
+                columnMode = snapshot.columnMode,
+                optionArrangement = snapshot.optionArrangement,
+                userApiKey = snapshot.userGeminiApiKey
             )
             scanResult.onSuccess { omr ->
                 val resolvedName = omr.studentName
@@ -168,6 +215,7 @@ class ScanViewModel(
                         aiConfidence = omr.confidence,
                         aiNotes = omr.notes,
                         livePreviewGrade = preview,
+                        lastScanEngineMode = omr.engineMode,
                         errorMessage = null
                     )
                 }

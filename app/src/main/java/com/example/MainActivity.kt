@@ -30,6 +30,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,8 +53,11 @@ import com.example.data.local.RoomExamRepository
 import com.example.i18n.AppLanguage
 import com.example.i18n.AppStrings
 import com.example.i18n.stringsFor
+import com.example.model.OptionArrangement
+import com.example.model.QuestionColumnMode
 import com.example.model.ScannedByRole
 import com.example.model.Submission
+import com.example.ui.components.AiScannerSettingsDialog
 import com.example.ui.screens.ExamsScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.ResultsScreen
@@ -80,6 +84,9 @@ class MainActivity : ComponentActivity() {
             val scope = rememberCoroutineScope()
             val localePrefs = remember(context) { LocalePreferences(context.applicationContext) }
             val language by localePrefs.languageFlow.collectAsStateWithLifecycle(initialValue = AppLanguage.BENGALI)
+            val userGeminiApiKey by localePrefs.geminiApiKeyFlow.collectAsStateWithLifecycle(initialValue = "")
+            val preferredColumnMode by localePrefs.columnModeFlow.collectAsStateWithLifecycle(initialValue = QuestionColumnMode.AUTO)
+            val preferredOptionArrangement by localePrefs.optionArrangementFlow.collectAsStateWithLifecycle(initialValue = OptionArrangement.AUTO)
             val strings = remember(language) { stringsFor(language) }
             val roomDataSource = remember(context) { RoomExamRepository(context.applicationContext) }
 
@@ -93,6 +100,10 @@ class MainActivity : ComponentActivity() {
                     uid = RoomExamRepository.LOCAL_USER_ID,
                     displayName = strings.appName,
                     dataSource = roomDataSource,
+                    localePrefs = localePrefs,
+                    userGeminiApiKey = userGeminiApiKey,
+                    preferredColumnMode = preferredColumnMode,
+                    preferredOptionArrangement = preferredOptionArrangement,
                     strings = strings,
                     language = language,
                     onToggleLanguage = toggleLanguage
@@ -107,10 +118,15 @@ private fun AppShell(
     uid: String,
     displayName: String,
     dataSource: ExamDataSource,
+    localePrefs: LocalePreferences,
+    userGeminiApiKey: String,
+    preferredColumnMode: QuestionColumnMode,
+    preferredOptionArrangement: OptionArrangement,
     strings: AppStrings,
     language: AppLanguage,
     onToggleLanguage: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     val dashboardViewModel: DashboardViewModel = viewModel(
         key = "dash_$uid",
         factory = viewModelFactory {
@@ -129,12 +145,22 @@ private fun AppShell(
         }
     )
 
+    LaunchedEffect(userGeminiApiKey, preferredColumnMode, preferredOptionArrangement) {
+        scanViewModel.syncPreferences(
+            userApiKey = userGeminiApiKey,
+            columnMode = preferredColumnMode,
+            optionArrangement = preferredOptionArrangement
+        )
+    }
+
     val teacherExamsState by dashboardViewModel.teacherExamsState.collectAsStateWithLifecycle()
     val mySubmissionsState by dashboardViewModel.mySubmissionsState.collectAsStateWithLifecycle()
+    val scanUiState by scanViewModel.uiState.collectAsStateWithLifecycle()
 
     var currentTab by rememberSaveable { mutableStateOf(AppTab.HOME) }
     var triggerCreateExam by rememberSaveable { mutableStateOf(false) }
     var inspectedSubmission by remember { mutableStateOf<Submission?>(null) }
+    var showAiSettingsDialog by rememberSaveable { mutableStateOf(false) }
 
     if (currentTab != AppTab.HOME && inspectedSubmission == null) {
         BackHandler { currentTab = AppTab.HOME }
@@ -179,7 +205,9 @@ private fun AppShell(
                             onOpenSubmission = { submission ->
                                 inspectedSubmission = submission
                                 currentTab = AppTab.RESULTS
-                            }
+                            },
+                            activeEngineMode = scanUiState.configuredEngineMode,
+                            onOpenAiSettings = { showAiSettingsDialog = true }
                         )
                     }
 
@@ -188,7 +216,14 @@ private fun AppShell(
                             scanViewModel = scanViewModel,
                             teacherExamsState = teacherExamsState,
                             strings = strings,
-                            onDoneToHome = { currentTab = AppTab.RESULTS }
+                            onDoneToHome = { currentTab = AppTab.RESULTS },
+                            onUpdateColumnMode = { mode ->
+                                scope.launch { localePrefs.setColumnMode(mode) }
+                            },
+                            onUpdateOptionArrangement = { arrangement ->
+                                scope.launch { localePrefs.setOptionArrangement(arrangement) }
+                            },
+                            onOpenAiSettings = { showAiSettingsDialog = true }
                         )
                     }
 
@@ -281,6 +316,18 @@ private fun AppShell(
                 screenContent(Modifier.padding(innerPadding))
             }
         }
+    }
+
+    if (showAiSettingsDialog) {
+        AiScannerSettingsDialog(
+            currentApiKey = userGeminiApiKey,
+            activeEngineMode = scanUiState.configuredEngineMode,
+            strings = strings,
+            onSaveKey = { newKey ->
+                scope.launch { localePrefs.setGeminiApiKey(newKey) }
+            },
+            onDismiss = { showAiSettingsDialog = false }
+        )
     }
 }
 
